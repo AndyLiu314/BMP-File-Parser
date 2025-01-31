@@ -224,10 +224,13 @@ def toggle_channel(channel):
     global r_enabled, g_enabled, b_enabled
     if channel == 'R':
         r_enabled = not r_enabled
+        r_toggle.config(relief="raised" if r_enabled else "sunken")
     elif channel == 'G':
         g_enabled = not g_enabled
+        g_toggle.config(relief="raised" if g_enabled else "sunken")
     elif channel == 'B':
         b_enabled = not b_enabled
+        b_toggle.config(relief="raised" if b_enabled else "sunken")
     update_image()
 
 # GUI Setup
@@ -269,9 +272,12 @@ scale_slider.grid(row=6, column=1, sticky='ew')
 # Channel buttons
 button_frame = tk.Frame(root)
 button_frame.grid(row=7, column=0, columnspan=3)
-tk.Button(button_frame, text="R", command=lambda: toggle_channel('R')).pack(side=tk.LEFT)
-tk.Button(button_frame, text="G", command=lambda: toggle_channel('G')).pack(side=tk.LEFT)
-tk.Button(button_frame, text="B", command=lambda: toggle_channel('B')).pack(side=tk.LEFT)
+r_toggle = tk.Button(button_frame, text="R", relief="raised", command=lambda: toggle_channel('R'))
+r_toggle.pack(side=tk.LEFT)
+g_toggle = tk.Button(button_frame, text="G", relief="raised", command=lambda: toggle_channel('G'))
+g_toggle.pack(side=tk.LEFT)
+b_toggle = tk.Button(button_frame, text="B", relief="raised", command=lambda: toggle_channel('B'))
+b_toggle.pack(side=tk.LEFT)
 
 # Image display
 image_label = tk.Label(root)
