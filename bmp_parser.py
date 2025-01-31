@@ -143,11 +143,6 @@ def open_file(filepath):
                     b, g, r = row_bytes[pixel_start], row_bytes[pixel_start+1], row_bytes[pixel_start+2]
                     rgb_row.append((r, g, b))
                     continue
-                elif bits_per_pixel == 32:
-                    pixel_start = x * 4
-                    b, g, r, _ = row_bytes[pixel_start], row_bytes[pixel_start+1], row_bytes[pixel_start+2], row_bytes[pixel_start+3]
-                    rgb_row.append((r, g, b))
-                    continue
                 else:
                     rgb_row.append((0, 0, 0))
                     continue
