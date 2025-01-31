@@ -93,6 +93,8 @@ def open_file(filepath):
         data_offset = int.from_bytes(bmp_header[10:14], 'little')
         colors_used = int.from_bytes(bmp_header[46:50], 'little')
 
+        width_padding = width + (4 - width % 4) % 4
+
         abs_height = abs(height)
         color_table = []
 
@@ -161,7 +163,7 @@ def open_file(filepath):
 
         # Update labels and image
         file_size_label.config(text=f"File Size: {file_size} bytes")
-        width_label.config(text=f"Width: {width} pixels")
+        width_label.config(text=f"Width: {width_padding} pixels")
         height_label.config(text=f"Height: {abs_height} pixels")
         bpp_label.config(text=f"Bits Per Pixel: {bits_per_pixel}")
         
@@ -252,13 +254,13 @@ bpp_label = tk.Label(root, text="Bits Per Pixel: ", anchor='w')
 bpp_label.grid(row=4, column=0, columnspan=3, sticky='ew')
 
 # Controls
-tk.Label(root, text="Brightness:").grid(row=5, column=0)
+tk.Label(root, text="Brightness:").grid(row=5, column=0, sticky="sw")
 brightness_slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL)
 brightness_slider.bind("<ButtonRelease-1>", update_image)
 brightness_slider.set(100)
 brightness_slider.grid(row=5, column=1, sticky='ew')
 
-tk.Label(root, text="Scale:").grid(row=6, column=0)
+tk.Label(root, text="Scale:").grid(row=6, column=0, sticky="sw")
 scale_slider = tk.Scale(root, from_=1, to=100, orient=tk.HORIZONTAL)
 scale_slider.bind("<ButtonRelease-1>", update_image)
 scale_slider.set(100)
