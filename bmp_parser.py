@@ -181,6 +181,7 @@ def update_image(*args):
         return
 
     try:
+        # Get current settings
         brightness = brightness_slider.get() / 100.0
         scale = scale_slider.get() / 100.0
         
