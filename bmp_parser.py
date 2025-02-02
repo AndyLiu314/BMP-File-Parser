@@ -120,7 +120,7 @@ def open_file(filepath):
 
         # Convert to RGB array
         original_rgb = []
-        row_order = reversed(range(abs_height)) if height > 0 else range(abs_height)
+        row_order = reversed(range(abs_height))
         
         for y in row_order:
             row_start = y * bytes_per_row
