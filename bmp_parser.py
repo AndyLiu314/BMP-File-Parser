@@ -183,8 +183,8 @@ def update_image(*args):
         scale = scale_slider.get() / 100.0
         
         # Calculate scaled dimensions
-        scaled_width = max(1, int(original_width * scale))
-        scaled_height = max(1, int(original_height * scale))
+        scaled_width = int(original_width * scale)
+        scaled_height = int(original_height * scale)
 
         original_array_np = np.array(original_rgb, dtype=np.uint8)
 
@@ -264,7 +264,7 @@ brightness_slider.set(100)
 brightness_slider.grid(row=5, column=1, sticky='ew')
 
 tk.Label(root, text="Scale:").grid(row=6, column=0, sticky="sw")
-scale_slider = tk.Scale(root, from_=1, to=100, orient=tk.HORIZONTAL)
+scale_slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL)
 scale_slider.bind("<ButtonRelease-1>", update_image)
 scale_slider.set(100)
 scale_slider.grid(row=6, column=1, sticky='ew')
