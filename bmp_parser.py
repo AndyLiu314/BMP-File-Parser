@@ -173,33 +173,32 @@ def update_image(*args):
         # scaled_float = rgb_processed_flat.reshape(h, w, 3)
 
         # Convert RGB to YUV
-        scaled_float = scaled_array.astype(np.float32)
-        scaled_float = np.dot(scaled_float, RGB_TO_YUV.T)  # Convert to YUV
+        yuv_array = np.dot(scaled_array, RGB_TO_YUV.T)
 
-        # Apply brightness to the Y (luminance) channel
-        scaled_float[..., 0] *= brightness
-        scaled_float[..., 1] *= brightness
-        scaled_float[..., 2] *= brightness
+        # Apply brightness to the YUV
+        yuv_array[..., 0] *= brightness
+        yuv_array[..., 1] *= brightness
+        yuv_array[..., 2] *= brightness
 
         # Convert back to RGB
-        scaled_float = np.dot(scaled_float, YUV_TO_RGB.T)  # Convert back to RGB
+        scaled_array = np.dot(yuv_array, YUV_TO_RGB.T)
 
         if not r_enabled:
-            scaled_float[..., 0] = 0.0
+            scaled_array[..., 0] = 0.0
         if not g_enabled:
-            scaled_float[..., 1] = 0.0
+            scaled_array[..., 1] = 0.0
         if not b_enabled:
-            scaled_float[..., 2] = 0.0
+            scaled_array[..., 2] = 0.0
 
         # Clamp values and convert back to uint8
-        scaled_processed = np.clip(scaled_float, 0, 255).astype(np.uint8)
+        processed_array = np.clip(scaled_array, 0, 255).astype(np.uint8)
 
         # Convert to Pillow Image and then to PhotoImage
-        image_pil = Image.fromarray(scaled_processed, mode='RGB')
-        current_photo = ImageTk.PhotoImage(image_pil)
+        image_pil = Image.fromarray(processed_array, mode='RGB')
+        current_image = ImageTk.PhotoImage(image_pil)
 
-        image_label.config(image=current_photo)
-        image_label.image = current_photo
+        image_label.config(image=current_image)
+        image_label.image = current_image
 
     except Exception as e:
         file_size_label.config(text=f"Render Error: {str(e)}")
