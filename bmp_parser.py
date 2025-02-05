@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageTk
 
 # Global variables to store image data and settings
-original_rgb = []
+original_rgb_array = []
 original_width = 0
 original_height = 0
 current_photo = None
@@ -37,7 +37,7 @@ def browse_file():
     open_file(filepath)
 
 def open_file(filepath):
-    global original_rgb, original_width, original_height
+    global original_rgb_array, original_width, original_height
     try:
         with open(filepath, "rb") as f:
             bmp_header = f.read(54)
@@ -79,7 +79,7 @@ def open_file(filepath):
         bytes_per_row = ((bits_per_row + 31) // 32) * 4
 
         # Convert to RGB array
-        original_rgb = []
+        original_rgb_array = []
         row_order = reversed(range(abs_height))
         
         for y in row_order:
@@ -116,7 +116,7 @@ def open_file(filepath):
                     else:
                         rgb_row.append((0, 0, 0))
                         
-            original_rgb.append(rgb_row)
+            original_rgb_array.append(rgb_row)
 
         original_width = width
         original_height = abs_height
@@ -134,7 +134,7 @@ def open_file(filepath):
 
 def update_image(*args):
     global current_photo
-    if not original_rgb:
+    if not original_rgb_array:
         return
 
     try:
@@ -146,7 +146,7 @@ def update_image(*args):
         scaled_width = int(original_width * scale)
         scaled_height = int(original_height * scale)
 
-        original_array_np = np.array(original_rgb, dtype=np.uint8)
+        original_rgb_array_np = np.array(original_rgb_array, dtype=np.uint8)
 
         # Calculate indices for scaling (nearest-neighbor interpolation)
         y_indices = np.floor(np.linspace(0, original_height, scaled_height, endpoint=False)).astype(int)
@@ -155,43 +155,28 @@ def update_image(*args):
         x_indices = np.clip(x_indices, 0, original_width - 1)
 
         # Perform scaling using advanced indexing
-        scaled_array = original_array_np[y_indices[:, None], x_indices]
-
-        # # Apply YUV brightness adjustment
-        # scaled_float = scaled_array.astype(np.float32)
-
-        # # Convert RGB to YUV
-        # h, w, c = scaled_float.shape
-        # rgb_flat = scaled_float.reshape(-1, 3)
-        # yuv_flat = np.dot(rgb_flat, RGB_TO_YUV.T)
-        
-        # # Apply brightness to Y component
-        # yuv_flat[..., 0] *= brightness
-        
-        # # Convert back to RGB
-        # rgb_processed_flat = np.dot(yuv_flat, YUV_TO_RGB.T)
-        # scaled_float = rgb_processed_flat.reshape(h, w, 3)
-
-        # Convert RGB to YUV
-        yuv_array = np.dot(scaled_array, RGB_TO_YUV.T)
-
-        # Apply brightness to the YUV
-        yuv_array[..., 0] *= brightness
-        yuv_array[..., 1] *= brightness
-        yuv_array[..., 2] *= brightness
-
-        # Convert back to RGB
-        scaled_array = np.dot(yuv_array, YUV_TO_RGB.T)
+        scaled_rgb_array = original_rgb_array_np[y_indices[:, None], x_indices]
 
         if not r_enabled:
-            scaled_array[..., 0] = 0.0
+            scaled_rgb_array[..., 0] = 0.0
         if not g_enabled:
-            scaled_array[..., 1] = 0.0
+            scaled_rgb_array[..., 1] = 0.0
         if not b_enabled:
-            scaled_array[..., 2] = 0.0
+            scaled_rgb_array[..., 2] = 0.0
+
+        # Convert RGB to YUV
+        scaled_yuv_array = np.dot(scaled_rgb_array, RGB_TO_YUV.T)
+
+        # Apply brightness to the YUV
+        scaled_yuv_array[..., 0] *= brightness
+        scaled_yuv_array[..., 1] *= brightness
+        scaled_yuv_array[..., 2] *= brightness
+
+        # Convert back to RGB
+        scaled_rgb_array = np.dot(scaled_yuv_array, YUV_TO_RGB.T)
 
         # Clamp values and convert back to uint8
-        processed_array = np.around(scaled_array).astype(np.uint8)
+        processed_array = np.around(scaled_rgb_array).astype(np.uint8)
         processed_array = np.clip(processed_array, 0, 255)
 
         # Convert to Pillow Image and then to PhotoImage
