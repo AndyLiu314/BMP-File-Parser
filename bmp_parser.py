@@ -90,19 +90,19 @@ def open_file(filepath):
             
             for x in range(width):
                 if bits_per_pixel == 1:
-                    byte_idx = x // 8
-                    bit_idx = 7 - (x % 8)
-                    index = (row_bytes[byte_idx] >> bit_idx) & 1 if byte_idx < len(row_bytes) else 0
+                    byte_index = x // 8
+                    bit_index = 7 - (x % 8)
+                    color_index = (row_bytes[byte_index] >> bit_index) & 1 if byte_index < len(row_bytes) else 0
                 elif bits_per_pixel == 4:
-                    nibble_idx = x % 2
-                    byte_idx = x // 2
-                    byte = row_bytes[byte_idx] if byte_idx < len(row_bytes) else 0
-                    index = (byte >> (4 * (1 - nibble_idx))) & 0x0F
+                    nibble_index = x % 2
+                    byte_index = x // 2
+                    byte = row_bytes[byte_index] if byte_index < len(row_bytes) else 0
+                    color_index = (byte >> (4 * (1 - nibble_index))) & 0x0F
                 elif bits_per_pixel == 8:
-                    index = row_bytes[x] if x < len(row_bytes) else 0
+                    color_index = row_bytes[x] if x < len(row_bytes) else 0
                 elif bits_per_pixel == 24:
-                    pixel_start = x * 3
-                    b, g, r = row_bytes[pixel_start], row_bytes[pixel_start+1], row_bytes[pixel_start+2]
+                    pixel_bytes_index = x * 3
+                    b, g, r = row_bytes[pixel_bytes_index], row_bytes[pixel_bytes_index+1], row_bytes[pixel_bytes_index+2]
                     rgb_row.append((r, g, b))
                     continue
                 else:
@@ -110,8 +110,8 @@ def open_file(filepath):
                     continue
 
                 if bits_per_pixel in [1, 4, 8]:
-                    if index < len(color_table):
-                        r, g, b = color_table[index]
+                    if color_index < len(color_table):
+                        r, g, b = color_table[color_index]
                         rgb_row.append((r, g, b))
                     else:
                         rgb_row.append((0, 0, 0))
