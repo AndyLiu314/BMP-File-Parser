@@ -191,7 +191,8 @@ def update_image(*args):
             scaled_array[..., 2] = 0.0
 
         # Clamp values and convert back to uint8
-        processed_array = np.clip(scaled_array, 0, 255).astype(np.uint8)
+        processed_array = np.around(scaled_array).astype(np.uint8)
+        processed_array = np.clip(processed_array, 0, 255)
 
         # Convert to Pillow Image and then to PhotoImage
         image_pil = Image.fromarray(processed_array, mode='RGB')
