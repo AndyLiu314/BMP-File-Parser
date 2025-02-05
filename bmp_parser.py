@@ -1,61 +1,3 @@
-# import tkinter as tk
-# import tkinter.filedialog
-
-# def browse_file():
-#     filepath = tk.filedialog.askopenfilename(filetypes=[("BMP files", "*.bmp")])
-#     file_path_entry.delete(0, tk.END)
-#     file_path_entry.insert(0, filepath)
-#     open_file(filepath)  # Automatically process file after selection
-
-# def open_file(filepath):
-#     try:
-#         with open(filepath, "rb") as f:
-#             bmp_header = f.read(54)  # Read BMP header (first 54 bytes)
-
-#         # Check if file is a valid BMP
-#         if bmp_header[0:2] == b'BM':
-#             file_size = int.from_bytes(bmp_header[2:6], byteorder='little')
-#             width_no_padding = int.from_bytes(bmp_header[18:22], byteorder='little')
-#             height = int.from_bytes(bmp_header[22:26], byteorder='little')
-#             bits_per_pixel = int.from_bytes(bmp_header[28:30], byteorder='little')
-
-#             width_padding = width_no_padding + (4 - width_no_padding % 4) % 4
-
-#             # Update labels with extracted values
-#             file_size_label.config(text=f"File Size: {file_size} bytes")
-#             width_label.config(text=f"Width: {width_padding} pixels")
-#             height_label.config(text=f"Height: {height} pixels")
-#             bpp_label.config(text=f"Bits Per Pixel: {bits_per_pixel}")
-#         else:
-#             file_size_label.config(text="Invalid BMP file")
-#     except Exception as e:
-#         file_size_label.config(text="Error reading file")
-
-# # GUI Setup
-# root = tk.Tk()
-# root.title("BMP Info Viewer")
-
-# # File selection row
-# tk.Label(root, text="File Path").grid(row=0, column=0)
-# file_path_entry = tk.Entry(root, width=50)
-# file_path_entry.grid(row=0, column=1)
-# tk.Button(root, text="Browse", command=browse_file).grid(row=0, column=2)
-
-# # Labels for displaying BMP info
-# file_size_label = tk.Label(root, text="File Size: ")
-# file_size_label.grid(row=1, column=0, columnspan=3, sticky="w")
-
-# width_label = tk.Label(root, text="Width: ")
-# width_label.grid(row=2, column=0, columnspan=3, sticky="w")
-
-# height_label = tk.Label(root, text="Height: ")
-# height_label.grid(row=3, column=0, columnspan=3, sticky="w")
-
-# bpp_label = tk.Label(root, text="Bits Per Pixel: ")
-# bpp_label.grid(row=4, column=0, columnspan=3, sticky="w")
-
-# root.mainloop()
-
 import tkinter as tk
 import tkinter.filedialog
 import numpy as np
@@ -69,6 +11,24 @@ current_photo = None
 r_enabled = True
 g_enabled = True
 b_enabled = True
+
+# RGB_TO_YUV = np.array([
+#     [0.299, 0.587, 0.114],
+#     [-0.299, -0.587, 0.886],
+#     [0.701, -0.587, -0.114]
+# ])
+
+RGB_TO_YUV = np.array([
+    [0.299, 0.587, 0.114],
+    [-0.147, -0.289, 0.436],
+    [0.615, -0.515, -0.100]
+])
+
+YUV_TO_RGB = np.array([
+    [1, 0, 1.13983],
+    [1, -0.39465, -0.58060],
+    [1, 2.03211, 0]
+])
 
 def browse_file():
     filepath = tk.filedialog.askopenfilename(filetypes=[("BMP files", "*.bmp")])
@@ -197,8 +157,32 @@ def update_image(*args):
         # Perform scaling using advanced indexing
         scaled_array = original_array_np[y_indices[:, None], x_indices]
 
-        # Apply brightness and channel toggles
-        scaled_float = scaled_array.astype(np.float32) * brightness
+        # # Apply YUV brightness adjustment
+        # scaled_float = scaled_array.astype(np.float32)
+
+        # # Convert RGB to YUV
+        # h, w, c = scaled_float.shape
+        # rgb_flat = scaled_float.reshape(-1, 3)
+        # yuv_flat = np.dot(rgb_flat, RGB_TO_YUV.T)
+        
+        # # Apply brightness to Y component
+        # yuv_flat[..., 0] *= brightness
+        
+        # # Convert back to RGB
+        # rgb_processed_flat = np.dot(yuv_flat, YUV_TO_RGB.T)
+        # scaled_float = rgb_processed_flat.reshape(h, w, 3)
+
+        # Convert RGB to YUV
+        scaled_float = scaled_array.astype(np.float32)
+        scaled_float = np.dot(scaled_float, RGB_TO_YUV.T)  # Convert to YUV
+
+        # Apply brightness to the Y (luminance) channel
+        scaled_float[..., 0] *= brightness
+        scaled_float[..., 1] *= brightness
+        scaled_float[..., 2] *= brightness
+
+        # Convert back to RGB
+        scaled_float = np.dot(scaled_float, YUV_TO_RGB.T)  # Convert back to RGB
 
         if not r_enabled:
             scaled_float[..., 0] = 0.0
