@@ -53,8 +53,6 @@ def open_file(filepath):
         data_offset = int.from_bytes(bmp_header[10:14], 'little')
         colors_used = int.from_bytes(bmp_header[46:50], 'little')
 
-        width_padding = width + (4 - width % 4) % 4
-
         abs_height = abs(height)
         color_table = []
 
@@ -123,7 +121,7 @@ def open_file(filepath):
 
         # Update labels and image
         file_size_label.config(text=f"File Size: {file_size} bytes")
-        width_label.config(text=f"Width: {width_padding} pixels")
+        width_label.config(text=f"Width: {width} pixels")
         height_label.config(text=f"Height: {abs_height} pixels")
         bpp_label.config(text=f"Bits Per Pixel: {bits_per_pixel}")
         
@@ -164,23 +162,24 @@ def update_image(*args):
         if not b_enabled:
             scaled_rgb_array[..., 2] = 0.0
 
+        # Normalizing RGB values to [0, 1]
+        scaled_rgb_array = scaled_rgb_array.astype(np.float32) / 255
+
         # Convert RGB to YUV
         scaled_yuv_array = np.dot(scaled_rgb_array, RGB_TO_YUV.T)
 
         # Apply brightness to the YUV
         scaled_yuv_array[..., 0] *= brightness
-        scaled_yuv_array[..., 1] *= brightness
-        scaled_yuv_array[..., 2] *= brightness
 
         # Convert back to RGB
         scaled_rgb_array = np.dot(scaled_yuv_array, YUV_TO_RGB.T)
 
-        # Clamp values and convert back to uint8
-        processed_array = np.around(scaled_rgb_array).astype(np.uint8)
-        processed_array = np.clip(processed_array, 0, 255)
+        # Reverting values back to [0, 255] and clipping result
+        scaled_rgb_array = scaled_rgb_array.astype(np.float32) * 255
+        processed_image_data = np.clip(scaled_rgb_array, 0, 255).astype(np.uint8)
 
         # Convert to Pillow Image and then to PhotoImage
-        image_pil = Image.fromarray(processed_array, mode='RGB')
+        image_pil = Image.fromarray(processed_image_data, mode='RGB')
         current_image = ImageTk.PhotoImage(image_pil)
 
         image_label.config(image=current_image)
