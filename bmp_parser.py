@@ -38,14 +38,26 @@ class BMP_Parser:
 
         self.setup_gui()
 
+    # Handles the initial setup of the GUI for the program
     def setup_gui(self):
-        # File selection
+        self.setup_file_selection()
+        self.setup_labels()
+        self.setup_controls()
+        self.setup_rgb_buttons()
+
+        # Label for displaying the image
+        self.image_label = tk.Label(self.root)
+        self.image_label.grid(row=8, column=0, columnspan=3)
+
+    # Handles the setup for the file selection interface
+    def setup_file_selection(self):
         tk.Label(self.root, text="File Path").grid(row=0, column=0)
         self.file_path_entry = tk.Entry(self.root, width=50, state="readonly")
         self.file_path_entry.grid(row=0, column=1)
         tk.Button(self.root, text="Browse", command=self.browse_file).grid(row=0, column=2)
 
-        # Info labels (centered)
+    # Handles the setup of the labels displaying metadata info
+    def setup_labels(self):
         self.file_size_label = tk.Label(self.root, text="File Size: ", anchor='center', justify='center')
         self.file_size_label.grid(row=1, column=0, columnspan=3, pady=(10,0))
 
@@ -58,20 +70,22 @@ class BMP_Parser:
         self.bpp_label = tk.Label(self.root, text="Bits Per Pixel: ", anchor='center', justify='center')
         self.bpp_label.grid(row=4, column=0, columnspan=3)
 
-        # Controls
+    # Handles the setup of the UI controls, specifically the brightness and scale sliders
+    def setup_controls(self):
         tk.Label(self.root, text="Brightness:").grid(row=5, column=0, sticky="se")
         self.brightness_slider = tk.Scale(self.root, from_=0, to=100, orient=tk.HORIZONTAL)
-        self.brightness_slider.bind("<ButtonRelease-1>", self.update_image)
+        self.brightness_slider.bind("<ButtonRelease-1>", self.process_image)
         self.brightness_slider.set(100)
         self.brightness_slider.grid(row=5, column=1, sticky='ew')
 
         tk.Label(self.root, text="Scale:").grid(row=6, column=0, sticky="se")
         self.scale_slider = tk.Scale(self.root, from_=0, to=100, orient=tk.HORIZONTAL)
-        self.scale_slider.bind("<ButtonRelease-1>", self.update_image)
+        self.scale_slider.bind("<ButtonRelease-1>", self.process_image)
         self.scale_slider.set(100)
         self.scale_slider.grid(row=6, column=1, sticky='ew')
-
-        # Channel buttons
+        
+    # Handles the setup fo the RGB channel toggle buttons
+    def setup_rgb_buttons(self):
         button_frame = tk.Frame(self.root)
         button_frame.grid(row=7, column=0, columnspan=3)
 
@@ -82,19 +96,33 @@ class BMP_Parser:
         self.b_toggle = tk.Button(button_frame, text="B", relief="raised", command=lambda: self.toggle_channel('B'))
         self.b_toggle.pack(side=tk.LEFT)
 
-        # Image display
-        self.image_label = tk.Label(self.root)
-        self.image_label.grid(row=8, column=0, columnspan=3)
+    def toggle_channel(self, channel):
+        if channel == 'R':
+            self.r_enabled = not self.r_enabled
+            self.r_toggle.config(relief="raised" if self.r_enabled else "sunken")
+        elif channel == 'G':
+            self.g_enabled = not self.g_enabled
+            self.g_toggle.config(relief="raised" if self.g_enabled else "sunken")
+        elif channel == 'B':
+            self.b_enabled = not self.b_enabled
+            self.b_toggle.config(relief="raised" if self.b_enabled else "sunken")
+        self.process_image()
 
     def browse_file(self):
         filepath = tk.filedialog.askopenfilename(filetypes=[("BMP files", "*.bmp")])
-        self.file_path_entry.config(state="normal")
-        self.file_path_entry.delete(0, tk.END)
-        self.file_path_entry.insert(0, filepath)
-        self.file_path_entry.config(state="readonly")
-        self.open_file(filepath)
+        if filepath:
+            self.file_path_entry.config(state="normal")
+            self.file_path_entry.delete(0, tk.END)
+            self.file_path_entry.insert(0, filepath)
+            self.file_path_entry.config(state="readonly")
+            self.open_bmp_file(filepath)
+        else:
+            self.file_path_entry.config(state="normal")
+            self.file_path_entry.delete(0, tk.END)
+            self.file_path_entry.insert(0, "No File Provided")
+            self.file_path_entry.config(state="readonly")
 
-    def open_file(self, filepath):
+    def open_bmp_file(self, filepath):
         try:
             with open(filepath, "rb") as f:
                 bmp_header = f.read(54)
@@ -103,86 +131,27 @@ class BMP_Parser:
                 self.file_size_label.config(text="Invalid BMP file")
                 return
 
-            file_size = int.from_bytes(bmp_header[2:6], 'little')
-            width = int.from_bytes(bmp_header[18:22], 'little')
-            height = int.from_bytes(bmp_header[22:26], 'little', signed=True)
-            bits_per_pixel = int.from_bytes(bmp_header[28:30], 'little')
-            data_offset = int.from_bytes(bmp_header[10:14], 'little')
-            colors_used = int.from_bytes(bmp_header[46:50], 'little')
+            metadata = self.get_metadata(bmp_header)
+            
+            file_size = metadata["file_size"]
+            width = metadata["width"]
+            height = metadata["height"]
+            bits_per_pixel = metadata["bits_per_pixel"]
 
             abs_height = abs(height)
-            color_table = []
-
-            # Read color table for 1/4/8 bpp
-            if bits_per_pixel in [1, 4, 8]:
-                num_colors = 2 ** bits_per_pixel if colors_used == 0 else colors_used
-                with open(filepath, "rb") as f:
-                    f.seek(54)
-                    color_table_data = f.read(num_colors * 4)
-                    for i in range(num_colors):
-                        entry = color_table_data[i*4 : (i+1)*4]
-                        blue, green, red, _ = entry
-                        color_table.append((red, green, blue))
-
-            # Read pixel data
-            with open(filepath, "rb") as f:
-                f.seek(data_offset)
-                pixel_data = f.read()
-
-            # Calculate bytes per row
-            bits_per_row = width * bits_per_pixel
-            bytes_per_row = ((bits_per_row + 31) // 32) * 4
-
-            # Convert to RGB array
-            self.original_rgb_array = []
-            row_order = reversed(range(abs_height))
-            
-            for y in row_order:
-                row_start = y * bytes_per_row
-                row_end = row_start + bytes_per_row
-                row_bytes = pixel_data[row_start:row_end]
-                rgb_row = []
-                
-                for x in range(width):
-                    if bits_per_pixel == 1:
-                        byte_index = x // 8
-                        bit_index = 7 - (x % 8)
-                        color_index = (row_bytes[byte_index] >> bit_index) & 1 if byte_index < len(row_bytes) else 0
-                    elif bits_per_pixel == 4:
-                        nibble_index = x % 2
-                        byte_index = x // 2
-                        byte = row_bytes[byte_index] if byte_index < len(row_bytes) else 0
-                        color_index = (byte >> (4 * (1 - nibble_index))) & 0x0F
-                    elif bits_per_pixel == 8:
-                        color_index = row_bytes[x] if x < len(row_bytes) else 0
-                    elif bits_per_pixel == 24:
-                        pixel_bytes_index = x * 3
-                        b, g, r = row_bytes[pixel_bytes_index], row_bytes[pixel_bytes_index+1], row_bytes[pixel_bytes_index+2]
-                        rgb_row.append((r, g, b))
-                        continue
-                    else:
-                        rgb_row.append((0, 0, 0))
-                        continue
-
-                    if bits_per_pixel in [1, 4, 8]:
-                        if color_index < len(color_table):
-                            r, g, b = color_table[color_index]
-                            rgb_row.append((r, g, b))
-                        else:
-                            rgb_row.append((0, 0, 0))
-                            
-                self.original_rgb_array.append(rgb_row)
-
             self.original_width = width
             self.original_height = abs_height
 
-            # Update labels and image
+            # Update labels with metadata
             self.file_size_label.config(text=f"File Size: {file_size} bytes")
             self.width_label.config(text=f"Image Width: {width} pixels")
             self.height_label.config(text=f"Image Height: {abs_height} pixels")
             self.bpp_label.config(text=f"Bits Per Pixel: {bits_per_pixel}")
-            
-            self.update_image()
+
+            color_table = self.parse_color_table(filepath, metadata)
+            self.parse_pixel_data(filepath, metadata, color_table)
+
+            self.process_image()
 
         except Exception as e:
             error_msg = f"Error: {str(e)}"
@@ -191,7 +160,91 @@ class BMP_Parser:
             self.file_path_entry.insert(0, error_msg)
             self.file_path_entry.config(state="readonly")
 
-    def update_image(self, *args):
+    def get_metadata(self, bmp_header) -> dict:
+        return {
+            "file_size": int.from_bytes(bmp_header[2:6], 'little'),
+            "width": int.from_bytes(bmp_header[18:22], 'little'),
+            "height": int.from_bytes(bmp_header[22:26], 'little', signed=True),
+            "bits_per_pixel": int.from_bytes(bmp_header[28:30], 'little'),
+            "data_offset": int.from_bytes(bmp_header[10:14], 'little'),
+            "colors_used": int.from_bytes(bmp_header[46:50], 'little'),
+        }
+    
+    def parse_color_table(self, filepath, metadata):
+        bits_per_pixel = metadata["bits_per_pixel"]
+        if bits_per_pixel in [1, 4, 8]:
+            color_table = []
+            colors_used = metadata["colors_used"]
+            num_colors = 2 ** bits_per_pixel if colors_used == 0 else colors_used
+
+            with open(filepath, "rb") as f:
+                f.seek(54)
+                color_table_data = f.read(num_colors * 4)
+                for i in range(num_colors):
+                    entry = color_table_data[i*4 : (i+1)*4]
+                    blue, green, red, _ = entry
+                    color_table.append((red, green, blue))
+
+            return color_table
+        else:
+            return
+
+    def parse_pixel_data(self, filepath, metadata, color_table):
+        width = metadata["width"]
+        height = metadata["height"]
+        bits_per_pixel = metadata["bits_per_pixel"]
+        data_offset = metadata["data_offset"]
+        abs_height = abs(height)
+
+        with open(filepath, "rb") as f:
+            f.seek(data_offset)
+            pixel_data = f.read()
+
+        # Calculate bytes per row
+        bits_per_row = width * bits_per_pixel
+        bytes_per_row = ((bits_per_row + 31) // 32) * 4
+
+        # Convert to RGB array
+        self.original_rgb_array = []
+        row_order = reversed(range(abs_height))
+        
+        for y in row_order:
+            row_start = y * bytes_per_row
+            row_end = row_start + bytes_per_row
+            row_bytes = pixel_data[row_start:row_end]
+            rgb_row = []
+            
+            for x in range(width):
+                if bits_per_pixel == 1:
+                    byte_index = x // 8
+                    bit_index = 7 - (x % 8)
+                    color_index = (row_bytes[byte_index] >> bit_index) & 1 if byte_index < len(row_bytes) else 0
+                elif bits_per_pixel == 4:
+                    nibble_index = x % 2
+                    byte_index = x // 2
+                    byte = row_bytes[byte_index] if byte_index < len(row_bytes) else 0
+                    color_index = (byte >> (4 * (1 - nibble_index))) & 0x0F
+                elif bits_per_pixel == 8:
+                    color_index = row_bytes[x] if x < len(row_bytes) else 0
+                elif bits_per_pixel == 24:
+                    pixel_bytes_index = x * 3
+                    b, g, r = row_bytes[pixel_bytes_index], row_bytes[pixel_bytes_index+1], row_bytes[pixel_bytes_index+2]
+                    rgb_row.append((r, g, b))
+                    continue
+                else:
+                    rgb_row.append((0, 0, 0))
+                    continue
+
+                if bits_per_pixel in [1, 4, 8]:
+                    if color_index < len(color_table):
+                        r, g, b = color_table[color_index]
+                        rgb_row.append((r, g, b))
+                    else:
+                        rgb_row.append((0, 0, 0))
+                        
+            self.original_rgb_array.append(rgb_row)
+
+    def process_image(self, *args):
         if not self.original_rgb_array:
             return
 
@@ -251,18 +304,6 @@ class BMP_Parser:
             self.file_path_entry.delete(0, tk.END)
             self.file_path_entry.insert(0, error_msg)
             self.file_path_entry.config(state="readonly")
-
-    def toggle_channel(self, channel):
-        if channel == 'R':
-            self.r_enabled = not self.r_enabled
-            self.r_toggle.config(relief="raised" if self.r_enabled else "sunken")
-        elif channel == 'G':
-            self.g_enabled = not self.g_enabled
-            self.g_toggle.config(relief="raised" if self.g_enabled else "sunken")
-        elif channel == 'B':
-            self.b_enabled = not self.b_enabled
-            self.b_toggle.config(relief="raised" if self.b_enabled else "sunken")
-        self.update_image()
 
 if __name__ == "__main__":
     root = tk.Tk()
