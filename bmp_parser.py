@@ -35,8 +35,10 @@ YUV_TO_RGB = np.array([
 
 def browse_file():
     filepath = tk.filedialog.askopenfilename(filetypes=[("BMP files", "*.bmp")])
+    file_path_entry.config(state="normal")
     file_path_entry.delete(0, tk.END)
     file_path_entry.insert(0, filepath)
+    file_path_entry.config(state="readonly")
     open_file(filepath)
 
 def open_file(filepath):
@@ -210,7 +212,7 @@ root.title("BMP Viewer")
 
 # File selection
 tk.Label(root, text="File Path").grid(row=0, column=0)
-file_path_entry = tk.Entry(root, width=50)
+file_path_entry = tk.Entry(root, width=50, state="readonly")
 file_path_entry.grid(row=0, column=1)
 tk.Button(root, text="Browse", command=browse_file).grid(row=0, column=2)
 
