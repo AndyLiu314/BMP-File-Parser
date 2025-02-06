@@ -12,16 +12,19 @@ r_enabled = True
 g_enabled = True
 b_enabled = True
 
+# RGB TO YUV CONVERSION MATRIX PROVIDED IN COURSE MATERIALS
 # RGB_TO_YUV = np.array([
 #     [0.299, 0.587, 0.114],
 #     [-0.299, -0.587, 0.886],
 #     [0.701, -0.587, -0.114]
 # ])
 
+# RGB TO YUV CONVERSION MATRIX FOUND FROM: https://www.cs.sfu.ca/mmbook/programming_assignments/additional_notes/rgb_yuv_note/RGB-YUV.pdf
+# SEEMS TO HAVE A MORE ACCURATE COLOR REPRESENTATION, LESS SATURATED IMAGE
 RGB_TO_YUV = np.array([
     [0.299, 0.587, 0.114],
-    [-0.147, -0.289, 0.436],
-    [0.615, -0.515, -0.100]
+    [-0.14713, -0.28886, 0.436],
+    [0.615, -0.51499, -0.10001]
 ])
 
 YUV_TO_RGB = np.array([
@@ -121,8 +124,8 @@ def open_file(filepath):
 
         # Update labels and image
         file_size_label.config(text=f"File Size: {file_size} bytes")
-        width_label.config(text=f"Width: {width} pixels")
-        height_label.config(text=f"Height: {abs_height} pixels")
+        width_label.config(text=f"Image Width: {width} pixels")
+        height_label.config(text=f"Image Height: {abs_height} pixels")
         bpp_label.config(text=f"Bits Per Pixel: {bits_per_pixel}")
         
         update_image()
@@ -211,27 +214,27 @@ file_path_entry = tk.Entry(root, width=50)
 file_path_entry.grid(row=0, column=1)
 tk.Button(root, text="Browse", command=browse_file).grid(row=0, column=2)
 
-# Info labels
-file_size_label = tk.Label(root, text="File Size: ", anchor='w')
-file_size_label.grid(row=1, column=0, columnspan=3, sticky='ew')
+# Info labels (centered)
+file_size_label = tk.Label(root, text="File Size: ", anchor='center', justify='center')
+file_size_label.grid(row=1, column=0, columnspan=3, pady=(10,0))
 
-width_label = tk.Label(root, text="Width: ", anchor='w')
-width_label.grid(row=2, column=0, columnspan=3, sticky='ew')
+width_label = tk.Label(root, text="Image Width: ", anchor='center', justify='center')
+width_label.grid(row=2, column=0, columnspan=3)
 
-height_label = tk.Label(root, text="Height: ", anchor='w')
-height_label.grid(row=3, column=0, columnspan=3, sticky='ew')
+height_label = tk.Label(root, text="Image Height: ", anchor='center', justify='center')
+height_label.grid(row=3, column=0, columnspan=3)
 
-bpp_label = tk.Label(root, text="Bits Per Pixel: ", anchor='w')
-bpp_label.grid(row=4, column=0, columnspan=3, sticky='ew')
+bpp_label = tk.Label(root, text="Bits Per Pixel: ", anchor='center', justify='center')
+bpp_label.grid(row=4, column=0, columnspan=3)
 
 # Controls
-tk.Label(root, text="Brightness:").grid(row=5, column=0, sticky="sw")
+tk.Label(root, text="Brightness:").grid(row=5, column=0, sticky="se")
 brightness_slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL)
 brightness_slider.bind("<ButtonRelease-1>", update_image)
 brightness_slider.set(100)
 brightness_slider.grid(row=5, column=1, sticky='ew')
 
-tk.Label(root, text="Scale:").grid(row=6, column=0, sticky="sw")
+tk.Label(root, text="Scale:").grid(row=6, column=0, sticky="se")
 scale_slider = tk.Scale(root, from_=0, to=100, orient=tk.HORIZONTAL)
 scale_slider.bind("<ButtonRelease-1>", update_image)
 scale_slider.set(100)
