@@ -133,7 +133,10 @@ class BMP_Parser:
                 bmp_header = f.read(54)
 
             if bmp_header[0:2] != b'BM':
-                self.file_size_label.config(text="Invalid BMP file")
+                self.file_path_entry.config(state="normal")
+                self.file_path_entry.delete(0, tk.END)
+                self.file_path_entry.insert(0, "Incorrect File Format")
+                self.file_path_entry.config(state="readonly")
                 return
 
             metadata = self.get_metadata(bmp_header)
